@@ -23,18 +23,18 @@ def main():
     #fileName = input("Please enter a FASTA file name: ")
     sequences = readfasta("sequences.fa")
 
-    max_len = 0;
+    max_len = 0
     for sequence in sequences:
-        if sequence[1].length > max_len
+        if sequence[1].length > max_len:
             max_len = sequence[1].length
         if checksequence(sequence[1]) == True:
             print(sequence[0], "is not valid")
-        else
+        else:
             print("rest of the sequences are valid!")
     print("sequences are valid!")
 
     for sequence in sequences:
-        if sequence[1].length < max_len
+        if sequence[1].length < max_len:
             need_len = max_len - sequences[1].length
             sequence.append("-"*need_len)
 
