@@ -1,6 +1,13 @@
+'''
+A program that checks for validity of sequences, with ambiguity codes, and 
+then aligns sequences and calculates a distance matrix
+
+'''
+
 from Bio.Phylo.TreeConstruction import DistanceCalculator
+from Bio.Align.Applications import ClustalwCommandline
 from Bio import AlignIO
-from Bio import Align
+
 
 from readfasta import readfasta
 
@@ -21,50 +28,26 @@ def main():
     '''
     # Ask for a file name and read in the FASTA file of sequences
     #fileName = input("Please enter a FASTA file name: ")
-    sequences = readfasta("sequences.fa")
+    fileName = "sequences.fa"
+    sequences = readfasta(fileName)
 
-    max_len = 0
+    max_len = 0;
     for sequence in sequences:
-        if sequence[1].length > max_len:
-            max_len = sequence[1].length
+        if len(sequence[1]) > max_len:
+            max_len = len(sequence[1])
         if checksequence(sequence[1]) == True:
             print(sequence[0], "is not valid")
         else:
-            print("rest of the sequences are valid!")
+            print(sequence[0], "is valid!")
     print("sequences are valid!")
 
-    for sequence in sequences:
-        if sequence[1].length < max_len:
-            need_len = max_len - sequences[1].length
-            sequence.append("-"*need_len)
+    cmd = ClustalwCommandline("clustalw2", infile=fileName)
+    print(cmd)
 
-    
+    stdout, stderr = cmd()
 
-
-
-        
-
-
-    # aligner = Align.PairwiseAligner()
-    # alignments = aligner.align("ATCTT", "ACTGAAT")
-
-    # for alignment in sorted(alignments):
-    #     print("Score = %.1f:" % alignment.score)
-    #     print(alignment)
-
-
-
-    # alignment = AlignIO.parse(open("sequences.fa"), "fasta")
-    # print("Alignment length %i" % alignment.get_alignment_length())
-    # for record in alignment:
-    #     print(record.seq + " " + record.id)
-
-
-
-    # aln = AlignIO.read(open(''), 'phylip')
-    # print(aln)
-
-
+    align = AlignIO.read("sequences.aln", "clustal")
+    print(align)
 
 if __name__ == "__main__":
     main()
