@@ -1,10 +1,9 @@
-# final-project
+# Construction Phylogenetic Trees of ALDH2 Among Species
 
-To install dependencies,
+## Dependencies
 
-`pip install -r requirements.txt`
++ `clustalw`, which can be [downloaded here](http://www.clustal.org/download/current/)
+    + Make sure this is on your system path for ease of use, especially on windows and linux.
++ Python dependencies, which can be installed with `pip install -r requirements.txt`
 
-Link to download clustal:
-http://www.clustal.org/download/current/
-
-I added the above binary file to my bin file on my linux machine, it made the process much easier.
+## Sequences Used
