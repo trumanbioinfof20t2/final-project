@@ -45,6 +45,7 @@ def main():
     cmd = ClustalwCommandline("clustalw2", infile=fileName)
     print(cmd)
 
+    # this line is commented as we already have a file
     #stdout, stderr = cmd()
 
     align = AlignIO.read("sequences.aln", "clustal")
