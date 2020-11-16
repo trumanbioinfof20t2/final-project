@@ -7,6 +7,7 @@ then aligns sequences and calculates a distance matrix
 from Bio.Phylo.TreeConstruction import DistanceCalculator
 from Bio.Align.Applications import ClustalwCommandline
 from Bio import AlignIO
+import sys
 
 
 from readfasta import readfasta
@@ -44,10 +45,18 @@ def main():
     cmd = ClustalwCommandline("clustalw2", infile=fileName)
     print(cmd)
 
-    stdout, stderr = cmd()
+    #stdout, stderr = cmd()
 
     align = AlignIO.read("sequences.aln", "clustal")
     print(align)
+
+     # can also use 'blosum62' instead of identity
+    calculator = DistanceCalculator('identity')
+    dm = calculator.get_distance(align)
+
+    sys.stdout = open("Distance.txt", "w")
+    print(dm)
+    sys.stdout.close()
 
 if __name__ == "__main__":
     main()
