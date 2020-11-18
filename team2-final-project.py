@@ -35,8 +35,8 @@ def isValidSequence(sequence_input):
     return all(i in validAA for i in sequence)
 
 '''
-align - a function that takes an unaligned FASTA file and runs it through clustal, 
-    creating a aligned clustal file. Clustal writes this to a file with 
+clustalAlign - a function that takes an unaligned FASTA file and runs it through clustal, 
+    creating an aligned clustal file. Clustal writes this to a file with 
     the same name as the infile, but with the .aln extension.
 @param unalignedFileName - the file name of the unaligned FASTA file of sequences
 '''
