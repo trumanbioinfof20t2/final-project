@@ -192,7 +192,7 @@ def main():
     # Then with the BLOSUM62 matrix
     print("Building UPGMA BLOSUM62 tree...")
     upgmaBlosum62Tree = buildUPGMATree(distanceMatrixBlosum62)
-    drawTree(upgmaBlosum62Tree, "UPGMA - IDENTITY", "BLOSUM62-"+upgmaTreeFileName)
+    drawTree(upgmaBlosum62Tree, "UPGMA - BLOSUM62", "BLOSUM62-"+upgmaTreeFileName)
 
     # ---------------
 
@@ -205,7 +205,7 @@ def main():
     # Then with the BLOSUM62 matrix
     print("Building Neighbor Joining BLOSUM62 tree...")
     njBlosum62Tree = buildNeighborJoiningTree(distanceMatrixBlosum62)
-    drawTree(njBlosum62Tree, "Neighbor Joining - IDENTITY", "BLOSUM62-"+njTreeFileName)
+    drawTree(njBlosum62Tree, "Neighbor Joining - BLOSUM62", "BLOSUM62-"+njTreeFileName)
 
     # ---------------
 
