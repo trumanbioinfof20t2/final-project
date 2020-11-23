@@ -130,8 +130,8 @@ def main():
     # Key File Names
     unalignedFileName = "sequences_aa2.fa"
     alignedFileName = "sequences_aa2.aln"
-    upgmaTreeFileName = "upgma_blosum62.png"
-    njTreeFileName = "nj_blosum62.png"
+    upgmaTreeFileName = "upgma.png"
+    njTreeFileName = "nj.png"
     parsimonyTreeFileName = "nniparsimony.png"
 
     # Read in the unaligned amino acid sequences FASTA file, single-letter code
