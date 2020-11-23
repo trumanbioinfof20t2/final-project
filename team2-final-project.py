@@ -25,7 +25,7 @@ isValidSequence - a function that checks if a sequence only contains valid amino
 '''
 def isValidSequence(sequence_input):
     # valid amino acids are all these letters http://130.88.97.239/bioactivity/aacodefrm.html
-    validAA = 'GALMFWKQESPVICYHRNDT-'
+    validAA = 'GALMFWKQESPVICYHRNDT-X'
     
     #sequence = input('Please enter a sequence: ').upper()
     sequence = sequence_input.upper()
@@ -128,8 +128,8 @@ def main():
     startTime = time.time()
     
     # Key File Names
-    unalignedFileName = "sequences_aa.fa"
-    alignedFileName = "sequences_aa.aln"
+    unalignedFileName = "sequences_aa2.fa"
+    alignedFileName = "sequences_aa2.aln"
     upgmaTreeFileName = "upgma_blosum62.png"
     njTreeFileName = "nj_blosum62.png"
     parsimonyTreeFileName = "nniparsimony.png"
@@ -157,8 +157,8 @@ def main():
 
     # Step 2: Use Clustal to align the sequences
 
-    # print("Aligning Sequences using Clustal...")
-    #clustalAlign(unalignedFileName)
+    print("Aligning Sequences using Clustal...")
+    clustalAlign(unalignedFileName)
 
     # Read clustal alignment
     print("Loading Clustal alignment from disk...")
