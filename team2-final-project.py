@@ -113,8 +113,8 @@ drawTree - a function that draws a pictoral representation of a phylogenetic tre
 @param fileName - file name to save tree image to. Must be a .png
 '''
 def drawTree(tree, title, fileName):
-    fig = plt.figure(figsize=(20,10), dpi=100)
-    plt.suptitle(title, fontsize=40.0)
+    fig = plt.figure(figsize=(30,15), dpi=100)
+    plt.suptitle(title, fontsize=45.0)
     axes = fig.add_subplot(1,1,1)
     plt.tight_layout()
     phyloDraw(tree, axes=axes, branch_labels=lambda c: round(c.branch_length, 3), do_show=False)
