@@ -6,6 +6,7 @@ Last Modified: 11/17/2020
 2. Align sequences with clustal
 3. Calculate a distance matrix
 4. Create a series of phylogenetic trees
+5. Analyze some characteristics of the trees
 '''
 
 from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor, ParsimonyScorer, NNITreeSearcher, ParsimonyTreeConstructor
@@ -15,6 +16,7 @@ from Bio import AlignIO
 import matplotlib.pyplot as plt
 import sys
 import time
+import operator
 
 from readfasta import readfasta
 
@@ -120,6 +122,22 @@ def drawTree(tree, title, fileName):
     phyloDraw(tree, axes=axes, branch_labels=lambda c: round(c.branch_length, 3), do_show=False)
     plt.savefig(fileName)
 
+'''
+getMaxCladeDepth - a function that gets the name and depth of the deepest clade 
+    in the given tree.
+@param tree - Tree object to analyze
+@param branchLengths - (optional) if False, depth is cumulative branch length.
+                                  if True, depth is number branches (levels).
+                                  default: False
+@return A tuple representing the deepest clade: (cladeName, cladeDepth)
+        If there is a tie, one Clade is nondeterministically chosen.
+'''
+def getMaxCladeDepth(tree, useNumBranches = False):
+    depths = tree.depths(unit_branch_lengths = useNumBranches)
+    maxKey = max(depths.items(), key=operator.itemgetter(1))[0]
+    maxVal = depths[maxKey]
+    return (maxKey.name, maxVal)
+
 # ------------------------------------------------------------------------------------------------------
 
 def main():
@@ -133,6 +151,12 @@ def main():
     upgmaTreeFileName = "upgma.png"
     njTreeFileName = "nj.png"
     parsimonyTreeFileName = "nniparsimony.png"
+    depthAnalysisFileName = "depthAnalysis.csv"
+    totalBranchLengthAnalysisFileName = "totalBranchLengthAnalysis.csv"
+
+    # Collections for all calculated trees for later analysis
+    # Entries of the form (treeName, Tree Object)
+    allTrees = []
 
     # Read in the unaligned amino acid sequences FASTA file, single-letter code
     sequences = readfasta(unalignedFileName)
@@ -188,11 +212,13 @@ def main():
     print("Building UPGMA Identity tree...")
     upgmaIdentityTree = buildUPGMATree(distanceMatrixIdentity)
     drawTree(upgmaIdentityTree, "UPGMA - IDENTITY", "identity-"+upgmaTreeFileName)
+    allTrees.append(("UPGMA - IDENTITY", upgmaIdentityTree))
 
     # Then with the BLOSUM62 matrix
     print("Building UPGMA BLOSUM62 tree...")
     upgmaBlosum62Tree = buildUPGMATree(distanceMatrixBlosum62)
     drawTree(upgmaBlosum62Tree, "UPGMA - BLOSUM62", "BLOSUM62-"+upgmaTreeFileName)
+    allTrees.append(("UPGMA - BLOSUM62", upgmaBlosum62Tree))
 
     # ---------------
 
@@ -201,11 +227,13 @@ def main():
     print("Building Neighbor Joining Identity tree...")
     njIdentityTree = buildNeighborJoiningTree(distanceMatrixIdentity)
     drawTree(njIdentityTree, "Neighbor Joining - IDENTITY", "identity-"+njTreeFileName)
+    allTrees.append(("Neighbor Joining - IDENTITY", njIdentityTree))
 
     # Then with the BLOSUM62 matrix
     print("Building Neighbor Joining BLOSUM62 tree...")
     njBlosum62Tree = buildNeighborJoiningTree(distanceMatrixBlosum62)
     drawTree(njBlosum62Tree, "Neighbor Joining - BLOSUM62", "BLOSUM62-"+njTreeFileName)
+    allTrees.append(("Neighbor Joining - BLOSUM62", upgmaIdentityTree))
 
     # ---------------
 
@@ -217,28 +245,86 @@ def main():
     print("Building NNI Parsimony tree using Fitch Algorithm starting with UPGMA Identity...")
     parsimonyUPGMAIdent = buildParsimonyNNITree(alignment, upgmaIdentityTree)
     drawTree(parsimonyUPGMAIdent, "Parsimony NNI - Start with UPGMA IDENTITY", "upgmaident-"+parsimonyTreeFileName)
+    allTrees.append(("Parsimony NNI - UPGMA IDENTITY", parsimonyUPGMAIdent))
 
     # Step 4.3.1.2: Use UPGMA - BLOSUM62 as a starting tree
     print("Building NNI Parsimony tree using Fitch Algorithm starting with UPGMA BLOSUM62...")
     parsimonyUPGMABlosum62 = buildParsimonyNNITree(alignment, upgmaBlosum62Tree)
     drawTree(parsimonyUPGMABlosum62, "Parsimony NNI - Start with UPGMA BLOSUM62", "upgmablosum62-"+parsimonyTreeFileName)
+    allTrees.append(("Parsimony NNI - UPGMA BLOSUM62", parsimonyUPGMABlosum62))
 
     # Step 4.3.1.3: Use Neighbor Joining - Identity as a starting tree
     print("Building NNI Parsimony tree using Fitch Algorithm starting with NJ Identity...")
     parsimonyNJIdent = buildParsimonyNNITree(alignment, njIdentityTree)
     drawTree(parsimonyNJIdent, "Parsimony NNI - Start with NJ IDENTITY", "njident-"+parsimonyTreeFileName)
+    allTrees.append(("Parsimony NNI - NJ IDENTITY", parsimonyNJIdent))
 
     # Step 4.3.1.4: Use Neighbor Joining - BLOSUM62 as a starting tree
     print("Building NNI Parsimony tree using Fitch Algorithm starting with NJ BLOSUM...")
     parsimonyNJBlosum62 = buildParsimonyNNITree(alignment, njBlosum62Tree)
     drawTree(parsimonyNJBlosum62, "Parsimony NNI - Start with NJ BLOSUM62", "njblosum62-"+parsimonyTreeFileName)
-
-    # -------
-
-    # Step 4.3.2: With the Sankoff Algorithm and the X matrix
-    # TODO
+    allTrees.append(("Parsimony NNI - NJ BLOSUM62", parsimonyNJBlosum62))
 
     print("Tree building complete.")
+    # -------------------------------------
+
+    # Step 5: Analysis
+
+    # Step 5.1: Maximum Clade Depth, by both Branch Length and Number of Branches
+
+    print("Starting Tree Depth Analysis...")
+
+    # Entries of the form (treeName, cladeName, cladeDepth)
+    maxCladeDepthByBranchLength = []
+    maxCladeDepthByNumBranches = []
+
+    # Calculate the maximum clade depths for each tree
+    for tree in allTrees:
+        maxDepth = getMaxCladeDepth(tree[1])
+        maxCladeDepthByBranchLength.append((tree[0], maxDepth[0], maxDepth[1]))
+        maxBranches = getMaxCladeDepth(tree[1], True)
+        maxCladeDepthByNumBranches.append((tree[0], maxBranches[0], maxBranches[1]))
+
+    # sort from smallest to largest depths
+    maxCladeDepthByBranchLength.sort(key=lambda k: k[2])
+    maxCladeDepthByNumBranches.sort(key=lambda k: k[2])
+
+    # write to files
+    with open("branchlength-"+depthAnalysisFileName, 'w') as outfile:
+        outfile.write("Tree Name,Clade Name,Depth\n")
+        for tree in maxCladeDepthByBranchLength:
+            outfile.write("{},{},{}\n".format(tree[0], tree[1], tree[2]))
+    
+    with open("numBranches-"+depthAnalysisFileName, 'w') as outfile:
+        outfile.write("Tree Name,Clade Name,Depth\n")
+        for tree in maxCladeDepthByNumBranches:
+            outfile.write("{},{},{}\n".format(tree[0], tree[1], tree[2]))
+
+    # ---------------
+
+    # Step 5.2: Total Branch Length
+
+    print("Starting Total Branch Length Analysis...")
+
+    # Entries of the form (treeName, totalBranchLength)
+    totalBranchLengths = []
+
+    # Calculate total branch lengths
+    for tree in allTrees:
+        tbl = tree[1].total_branch_length()
+        totalBranchLengths.append((tree[0], tbl))
+
+    # sort from smallest to largest
+    totalBranchLengths.sort(key=lambda k: k[1])
+
+    # write to file
+    with open(totalBranchLengthAnalysisFileName, 'w') as outfile:
+        outfile.write("Tree Name,Total Branch Length\n")
+        for tree in totalBranchLengths:
+            outfile.write("{},{}\n".format(tree[0], tree[1]))
+
+    
+    print("Analysis Complete.")
     # -------------------------------------
 
     # Record end time
