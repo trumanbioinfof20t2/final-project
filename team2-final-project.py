@@ -153,6 +153,7 @@ def main():
     parsimonyTreeFileName = "nniparsimony.png"
     depthAnalysisFileName = "depthAnalysis.csv"
     totalBranchLengthAnalysisFileName = "totalBranchLengthAnalysis.csv"
+    bifurcationAnalysisFileName = "bifurcation.csv"
 
     # Collections for all calculated trees for later analysis
     # Entries of the form (treeName, Tree Object)
@@ -322,6 +323,18 @@ def main():
         outfile.write("Tree Name,Total Branch Length\n")
         for tree in totalBranchLengths:
             outfile.write("{},{}\n".format(tree[0], tree[1]))
+
+    # ---------------
+
+    # Step 5.3: Bifurcation Check
+
+    print("Starting bifurcation check...")
+
+    # Determine and write results to file
+    with open(bifurcationAnalysisFileName, 'w') as outfile:
+        outfile.write("Tree Name,Bifurcating\n")
+        for tree in allTrees:
+            outfile.write("{},{}\n".format(tree[0], tree[1].is_bifurcating()))
 
     
     print("Analysis Complete.")
