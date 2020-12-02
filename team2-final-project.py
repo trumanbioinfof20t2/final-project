@@ -138,6 +138,19 @@ def getMaxCladeDepth(tree, useNumBranches = False):
     maxVal = depths[maxKey]
     return (maxKey.name, maxVal)
 
+'''
+getParsimonyScore - a function that generates the parsimony score of a 
+    given tree and multi-sequence alignment
+@param tree - Tree object to score
+@param msa - Alignment object to use in score
+@param scoreMatrix - Parsimony Scoring Matrix (in _Matrix object form) to use in the 
+    Sankoff algorithm. Default: None (use the Fitch algorithm instead)
+'''
+def getParsimonyScore(tree, msa, scoreMatrix = None):
+    scorer = ParsimonyScorer(scoreMatrix)
+    parsimonyScore = scorer.get_score(tree, msa)
+    return parsimonyScore
+
 # ------------------------------------------------------------------------------------------------------
 
 def main():
@@ -154,6 +167,7 @@ def main():
     depthAnalysisFileName = "depthAnalysis.csv"
     totalBranchLengthAnalysisFileName = "totalBranchLengthAnalysis.csv"
     bifurcationAnalysisFileName = "bifurcation.csv"
+    parsimonyScoreFileName = "parsimonyScores.csv"
 
     # Collections for all calculated trees for later analysis
     # Entries of the form (treeName, Tree Object)
@@ -338,6 +352,29 @@ def main():
         for tree in allTrees:
             outfile.write("{},{}\n".format(tree[0], tree[1].is_bifurcating()))
 
+
+    # ---------------
+
+    # Step 5.4: Parsimony Score Calculations
+
+    print("Starting Parsimony Scoring...")
+
+    # Entries of the form (treeName, parsimonyScore)
+    parsimonyScores = []
+
+    # Score all trees
+    for tree in allTrees:
+        score = getParsimonyScore(tree[1], alignment)
+        parsimonyScores.append((tree[0], score))
+
+    # Sort scores
+    parsimonyScores.sort(key=lambda k: k[1])
+
+    # Write to file
+    with open(parsimonyScoreFileName, 'w') as outfile:
+        outfile.write("Tree Name,Parsimony Score\n")
+        for tree in parsimonyScores:
+            outfile.write("{},{}\n".format(tree[0], tree[1]))
     
     print("Analysis Complete.")
     # -------------------------------------
