@@ -227,12 +227,14 @@ def main():
     # First with the identity matrix
     print("Building Neighbor Joining Identity tree...")
     njIdentityTree = buildNeighborJoiningTree(distanceMatrixIdentity)
+    njIdentityTree.root_at_midpoint()
     drawTree(njIdentityTree, "Neighbor Joining - IDENTITY", "identity-"+njTreeFileName)
     allTrees.append(("Neighbor Joining - IDENTITY", njIdentityTree))
 
     # Then with the BLOSUM62 matrix
     print("Building Neighbor Joining BLOSUM62 tree...")
     njBlosum62Tree = buildNeighborJoiningTree(distanceMatrixBlosum62)
+    njBlosum62Tree.root_at_midpoint()
     drawTree(njBlosum62Tree, "Neighbor Joining - BLOSUM62", "BLOSUM62-"+njTreeFileName)
     allTrees.append(("Neighbor Joining - BLOSUM62", upgmaIdentityTree))
 
@@ -261,7 +263,7 @@ def main():
     allTrees.append(("Parsimony NNI - NJ IDENTITY", parsimonyNJIdent))
 
     # Step 4.3.1.4: Use Neighbor Joining - BLOSUM62 as a starting tree
-    print("Building NNI Parsimony tree using Fitch Algorithm starting with NJ BLOSUM...")
+    print("Building NNI Parsimony tree using Fitch Algorithm starting with NJ BLOSUM62...")
     parsimonyNJBlosum62 = buildParsimonyNNITree(alignment, njBlosum62Tree)
     drawTree(parsimonyNJBlosum62, "Parsimony NNI - Start with NJ BLOSUM62", "njblosum62-"+parsimonyTreeFileName)
     allTrees.append(("Parsimony NNI - NJ BLOSUM62", parsimonyNJBlosum62))
