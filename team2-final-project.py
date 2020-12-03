@@ -1,7 +1,7 @@
 '''
 Bioinformatics Team 2 Final Project
 Miller, Ingli, Shahi, Winistoerfer
-Last Modified: 11/17/2020
+Last Modified: 12/2/20
 1. Check validity of amino acid sequences
 2. Align sequences with clustal
 3. Calculate a distance matrix
@@ -159,8 +159,8 @@ def main():
     startTime = time.time()
     
     # Key File Names
-    unalignedFileName = "sequences_aa2.fa"
-    alignedFileName = "sequences_aa2.aln"
+    unalignedFileName = "sequences_aa.fa"
+    alignedFileName = "sequences_aa.aln"
     upgmaTreeFileName = "upgma.png"
     njTreeFileName = "nj.png"
     parsimonyTreeFileName = "nniparsimony.png"
