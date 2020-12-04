@@ -11,6 +11,7 @@ Last Modified: 12/2/20
 
 from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor, ParsimonyScorer, NNITreeSearcher, ParsimonyTreeConstructor
 from Bio.Phylo import draw as phyloDraw
+from Bio.Phylo import write as phyloWrite
 from Bio.Align.Applications import ClustalwCommandline
 from Bio import AlignIO
 import matplotlib.pyplot as plt
@@ -105,21 +106,20 @@ def buildParsimonyNNITree(alignment, startingTree, scoreMatrix=None):
     searcher = NNITreeSearcher(scorer)
     constructor = ParsimonyTreeConstructor(searcher, startingTree)
     tree = constructor.build_tree(alignment)
+    tree.ladderize()
     return tree
 
 '''
 drawTree - a function that draws a pictoral representation of a phylogenetic tree 
     using matplotlib and Biopython, then saves the image as a png file.
 @param tree - Tree object to draw
-@param title - Title of the tree to display
 @param fileName - file name to save tree image to. Must be a .png
 '''
-def drawTree(tree, title, fileName):
-    fig = plt.figure(figsize=(30,15), dpi=100)
-    plt.suptitle(title, fontsize=45.0)
+def drawTree(tree, fileName):
+    fig = plt.figure(figsize=(20,10), dpi=100)
     axes = fig.add_subplot(1,1,1)
     plt.tight_layout()
-    phyloDraw(tree, axes=axes, branch_labels=lambda c: round(c.branch_length, 3), do_show=False)
+    phyloDraw(tree, axes=axes, branch_labels=lambda c: round(c.branch_length, 3), do_show=False, show_confidence=True)
     plt.savefig(fileName)
 
 '''
@@ -151,6 +151,15 @@ def getParsimonyScore(tree, msa, scoreMatrix = None):
     parsimonyScore = scorer.get_score(tree, msa)
     return parsimonyScore
 
+'''
+unlabelInternals - a function to remove the names on nonterminal (internal) clades
+@param tree - Tree object to manipulate
+'''
+def unlabelInternals(tree):
+    internals = tree.get_nonterminals()
+    for clade in internals:
+        clade.name = ""
+
 # ------------------------------------------------------------------------------------------------------
 
 def main():
@@ -168,9 +177,9 @@ def main():
     totalBranchLengthAnalysisFileName = "totalBranchLengthAnalysis.csv"
     bifurcationAnalysisFileName = "bifurcation.csv"
     parsimonyScoreFileName = "parsimonyScores.csv"
+    exportedTreesFileName = "trees.tree"
 
     # Collections for all calculated trees for later analysis
-    # Entries of the form (treeName, Tree Object)
     allTrees = []
 
     # Read in the unaligned amino acid sequences FASTA file, single-letter code
@@ -226,14 +235,18 @@ def main():
     # First with the identity matrix
     print("Building UPGMA Identity tree...")
     upgmaIdentityTree = buildUPGMATree(distanceMatrixIdentity)
-    drawTree(upgmaIdentityTree, "UPGMA - IDENTITY", "identity-"+upgmaTreeFileName)
-    allTrees.append(("UPGMA - IDENTITY", upgmaIdentityTree))
+    upgmaIdentityTree.name = "UPGMA - IDENTITY"
+    unlabelInternals(upgmaIdentityTree)
+    drawTree(upgmaIdentityTree, "identity-"+upgmaTreeFileName)
+    allTrees.append(upgmaIdentityTree)
 
     # Then with the BLOSUM62 matrix
     print("Building UPGMA BLOSUM62 tree...")
     upgmaBlosum62Tree = buildUPGMATree(distanceMatrixBlosum62)
-    drawTree(upgmaBlosum62Tree, "UPGMA - BLOSUM62", "BLOSUM62-"+upgmaTreeFileName)
-    allTrees.append(("UPGMA - BLOSUM62", upgmaBlosum62Tree))
+    upgmaBlosum62Tree.name = "UPGMA - BLOSUM62"
+    unlabelInternals(upgmaBlosum62Tree)
+    drawTree(upgmaBlosum62Tree, "BLOSUM62-"+upgmaTreeFileName)
+    allTrees.append(upgmaBlosum62Tree)
 
     # ---------------
 
@@ -242,15 +255,19 @@ def main():
     print("Building Neighbor Joining Identity tree...")
     njIdentityTree = buildNeighborJoiningTree(distanceMatrixIdentity)
     njIdentityTree.root_at_midpoint()
-    drawTree(njIdentityTree, "Neighbor Joining - IDENTITY", "identity-"+njTreeFileName)
-    allTrees.append(("Neighbor Joining - IDENTITY", njIdentityTree))
+    njIdentityTree.name = "NJ - Identity"
+    unlabelInternals(njIdentityTree)
+    drawTree(njIdentityTree, "identity-"+njTreeFileName)
+    allTrees.append(njIdentityTree)
 
     # Then with the BLOSUM62 matrix
     print("Building Neighbor Joining BLOSUM62 tree...")
     njBlosum62Tree = buildNeighborJoiningTree(distanceMatrixBlosum62)
     njBlosum62Tree.root_at_midpoint()
-    drawTree(njBlosum62Tree, "Neighbor Joining - BLOSUM62", "BLOSUM62-"+njTreeFileName)
-    allTrees.append(("Neighbor Joining - BLOSUM62", upgmaIdentityTree))
+    njBlosum62Tree.name = "NJ - BLOSUM62"
+    unlabelInternals(njBlosum62Tree)
+    drawTree(njBlosum62Tree,"BLOSUM62-"+njTreeFileName)
+    allTrees.append(njBlosum62Tree)
 
     # ---------------
 
@@ -261,28 +278,52 @@ def main():
     # Step 4.3.1.1: Use UPGMA - Identity as a starting tree
     print("Building NNI Parsimony tree using Fitch Algorithm starting with UPGMA Identity...")
     parsimonyUPGMAIdent = buildParsimonyNNITree(alignment, upgmaIdentityTree)
-    drawTree(parsimonyUPGMAIdent, "Parsimony NNI - Start with UPGMA IDENTITY", "upgmaident-"+parsimonyTreeFileName)
-    allTrees.append(("Parsimony NNI - UPGMA IDENTITY", parsimonyUPGMAIdent))
+    parsimonyUPGMAIdent.name = "Parsimony NNI - UPGMA Identity"
+    unlabelInternals(parsimonyUPGMAIdent)
+    drawTree(parsimonyUPGMAIdent, "upgmaident-"+parsimonyTreeFileName)
+    allTrees.append(parsimonyUPGMAIdent)
 
     # Step 4.3.1.2: Use UPGMA - BLOSUM62 as a starting tree
     print("Building NNI Parsimony tree using Fitch Algorithm starting with UPGMA BLOSUM62...")
     parsimonyUPGMABlosum62 = buildParsimonyNNITree(alignment, upgmaBlosum62Tree)
-    drawTree(parsimonyUPGMABlosum62, "Parsimony NNI - Start with UPGMA BLOSUM62", "upgmablosum62-"+parsimonyTreeFileName)
-    allTrees.append(("Parsimony NNI - UPGMA BLOSUM62", parsimonyUPGMABlosum62))
+    parsimonyUPGMABlosum62.name = "Parsimony NNI - UPGMA BLOSUM62"
+    unlabelInternals(parsimonyUPGMABlosum62)
+    drawTree(parsimonyUPGMABlosum62, "upgmablosum62-"+parsimonyTreeFileName)
+    allTrees.append(parsimonyUPGMABlosum62)
 
     # Step 4.3.1.3: Use Neighbor Joining - Identity as a starting tree
     print("Building NNI Parsimony tree using Fitch Algorithm starting with NJ Identity...")
     parsimonyNJIdent = buildParsimonyNNITree(alignment, njIdentityTree)
-    drawTree(parsimonyNJIdent, "Parsimony NNI - Start with NJ IDENTITY", "njident-"+parsimonyTreeFileName)
-    allTrees.append(("Parsimony NNI - NJ IDENTITY", parsimonyNJIdent))
+    parsimonyNJIdent.name = "Parsimony NNI - NJ Identity"
+    unlabelInternals(parsimonyNJIdent)
+    drawTree(parsimonyNJIdent, "njident-"+parsimonyTreeFileName)
+    allTrees.append(parsimonyNJIdent)
 
     # Step 4.3.1.4: Use Neighbor Joining - BLOSUM62 as a starting tree
     print("Building NNI Parsimony tree using Fitch Algorithm starting with NJ BLOSUM62...")
     parsimonyNJBlosum62 = buildParsimonyNNITree(alignment, njBlosum62Tree)
-    drawTree(parsimonyNJBlosum62, "Parsimony NNI - Start with NJ BLOSUM62", "njblosum62-"+parsimonyTreeFileName)
-    allTrees.append(("Parsimony NNI - NJ BLOSUM62", parsimonyNJBlosum62))
+    parsimonyNJBlosum62.name = "Parsimony NNI - NJ BLOSUM62"
+    unlabelInternals(parsimonyNJBlosum62)
+    drawTree(parsimonyNJBlosum62, "njblosum62-"+parsimonyTreeFileName)
+    allTrees.append(parsimonyNJBlosum62)
+
+    # ---------------
+
+    # Step 4.4: Build Bootstrap Consensus Tree
+    
+    # ---------------
 
     print("Tree building complete.")
+
+    # ---------------
+
+    # Step 4.999: Export Trees to File
+    print("Writing trees to disk...")
+
+    phyloWrite(allTrees, exportedTreesFileName, "newick")
+
+    print ("Trees exported.")
+
     # -------------------------------------
 
     # Step 5: Analysis
@@ -297,10 +338,10 @@ def main():
 
     # Calculate the maximum clade depths for each tree
     for tree in allTrees:
-        maxDepth = getMaxCladeDepth(tree[1])
-        maxCladeDepthByBranchLength.append((tree[0], maxDepth[0], maxDepth[1]))
-        maxBranches = getMaxCladeDepth(tree[1], True)
-        maxCladeDepthByNumBranches.append((tree[0], maxBranches[0], maxBranches[1]))
+        maxDepth = getMaxCladeDepth(tree)
+        maxCladeDepthByBranchLength.append((tree.name, maxDepth[0], maxDepth[1]))
+        maxBranches = getMaxCladeDepth(tree, True)
+        maxCladeDepthByNumBranches.append((tree.name, maxBranches[0], maxBranches[1]))
 
     # sort from smallest to largest depths
     maxCladeDepthByBranchLength.sort(key=lambda k: k[2])
@@ -328,8 +369,8 @@ def main():
 
     # Calculate total branch lengths
     for tree in allTrees:
-        tbl = tree[1].total_branch_length()
-        totalBranchLengths.append((tree[0], tbl))
+        tbl = tree.total_branch_length()
+        totalBranchLengths.append((tree.name, tbl))
 
     # sort from smallest to largest
     totalBranchLengths.sort(key=lambda k: k[1])
@@ -350,7 +391,7 @@ def main():
     with open(bifurcationAnalysisFileName, 'w') as outfile:
         outfile.write("Tree Name,Bifurcating\n")
         for tree in allTrees:
-            outfile.write("{},{}\n".format(tree[0], tree[1].is_bifurcating()))
+            outfile.write("{},{}\n".format(tree.name, tree.is_bifurcating()))
 
 
     # ---------------
@@ -364,8 +405,8 @@ def main():
 
     # Score all trees
     for tree in allTrees:
-        score = getParsimonyScore(tree[1], alignment)
-        parsimonyScores.append((tree[0], score))
+        score = getParsimonyScore(tree, alignment)
+        parsimonyScores.append((tree.name, score))
 
     # Sort scores
     parsimonyScores.sort(key=lambda k: k[1])
