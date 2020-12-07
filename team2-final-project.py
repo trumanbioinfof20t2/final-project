@@ -161,12 +161,20 @@ drawTree - a function that draws a pictoral representation of a phylogenetic tre
     using matplotlib and Biopython, then saves the image as a png file.
 @param tree - Tree object to draw
 @param fileName - file name to save tree image to. Must be a .png
+@param showBranchLengths - (optional) If True, label branches with their lengths. 
+                                      If False, show confidence on branch labels 
+                                        if present; showing branch lengths overwrites
+                                        this.
+                                      Default: True
 '''
-def drawTree(tree, fileName):
+def drawTree(tree, fileName, showBranchLengths = True):
     fig = plt.figure(figsize=(20,10), dpi=100)
     axes = fig.add_subplot(1,1,1)
     plt.tight_layout()
-    phyloDraw(tree, axes=axes, branch_labels=lambda c: round(c.branch_length, 3) if c.branch_length != None else 0, do_show=False, show_confidence=True)
+    if showBranchLengths:
+        phyloDraw(tree, axes=axes, branch_labels=lambda c: round(c.branch_length, 3) if c.branch_length != None else 0, do_show=False)
+    else:
+        phyloDraw(tree, axes=axes, do_show=False, show_confidence=True)
     plt.savefig(fileName)
 
 '''
@@ -204,6 +212,7 @@ def getParsimonyScore(tree, msa, scoreMatrix = None):
 '''
 unlabelInternals - a function to remove the names on nonterminal (internal) clades
 @param tree - Tree object to manipulate
+@sideEffect - All internal clade names in Tree are set to the empty string. This is destructive.
 '''
 def unlabelInternals(tree):
     internals = tree.get_nonterminals()
@@ -380,7 +389,7 @@ def main():
     unlabelInternals(strictConsensusTree)
     strictConsensusTree.name = "Strict Consensus"
     allTrees.append(strictConsensusTree)
-    drawTree(strictConsensusTree, "strictConsensusTree.png")
+    drawTree(strictConsensusTree, "strictConsensusTree.png", showBranchLengths=False) # Show confidence values instead if present
 
     # Step 4.4.2 Build consensus tree using previously built trees and 
     # majority consensus with a cutoff of 0
@@ -389,7 +398,7 @@ def main():
     unlabelInternals(majorityConsensusTree)
     majorityConsensusTree.name = "Majority Consensus"
     allTrees.append(majorityConsensusTree)
-    drawTree(majorityConsensusTree, "majorityConsensusTree.png")
+    drawTree(majorityConsensusTree, "majorityConsensusTree.png", showBranchLengths=False) # Show confidence values instead if present
 
     # Step 4.4.3 Build bootstrap consensus tree using newly built identity-upgma trees
     print("Building Bootstrap consensus tree with 100 trees and upgma...")
@@ -397,7 +406,7 @@ def main():
     unlabelInternals(bootstrapConsensusTreeUPGMA)
     bootstrapConsensusTreeUPGMA.name = "Bootstrap Majority Consensus - UPGMA"
     allTrees.append(bootstrapConsensusTreeUPGMA)
-    drawTree(bootstrapConsensusTreeUPGMA, "bootstrapConsensusTreeUPGMA.png")
+    drawTree(bootstrapConsensusTreeUPGMA, "bootstrapConsensusTreeUPGMA.png", showBranchLengths=False) # Show confidence values instead if present
 
     # Step 4.4.4 Build bootstrap consensus tree using newly built identity-nj trees
     print("Building Bootstrap consensus tree with 100 trees and neighbor-joining...")
@@ -405,7 +414,7 @@ def main():
     unlabelInternals(bootstrapConsensusTreeNJ)
     bootstrapConsensusTreeNJ.name = "Bootstrap Majority Consensus - NJ"
     allTrees.append(bootstrapConsensusTreeNJ)
-    drawTree(bootstrapConsensusTreeNJ, "bootstrapConsensusTreeNJ.png")
+    drawTree(bootstrapConsensusTreeNJ, "bootstrapConsensusTreeNJ.png", showBranchLengths=False) # Show confidence values instead if present
 
 
     # ---------------
