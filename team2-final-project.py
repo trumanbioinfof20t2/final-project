@@ -10,8 +10,10 @@ Last Modified: 12/2/20
 '''
 
 from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor, ParsimonyScorer, NNITreeSearcher, ParsimonyTreeConstructor
+from Bio.Phylo.Consensus import strict_consensus, majority_consensus, bootstrap_consensus
 from Bio.Phylo import draw as phyloDraw
 from Bio.Phylo import write as phyloWrite
+
 from Bio.Align.Applications import ClustalwCommandline
 from Bio import AlignIO
 import matplotlib.pyplot as plt
@@ -110,6 +112,51 @@ def buildParsimonyNNITree(alignment, startingTree, scoreMatrix=None):
     return tree
 
 '''
+buildStrictConsensusTree - a function that uses Biopython's Consensus module to
+build a consensus tree using a list of trees given as argument.
+@param trees - a list of trees.
+@return Tree object representing the strict consensus tree.
+'''
+def buildStrictConsensusTree(trees):
+    tree = strict_consensus(trees)
+    tree.ladderize()
+    return tree
+
+'''
+buildMajorityConsensusTree - a function that uses Biopython's Consensus module to
+build a consensus tree using a list of trees given as argument. Uses majority
+consensus to build trees.
+@param trees - a list of trees.
+@param cutoff - an float value from 0-1 that is the cutoff percentage.
+@return Tree object representing the majority consensus tree.
+'''
+def buildMajorityConsensusTree(trees, cutoff):
+    #by default cutoff is 0
+    tree = majority_consensus(trees, cutoff)
+    tree.ladderize()
+    return tree
+
+'''
+buildBootstrapConsensusTree - a function that uses Biopython's Consensus module to
+build a consensus by the bootstrap method i.e. generating several trees with some 
+permutation and then taking a consensus (in this case majority with cutoff 0 (default))
+that will then provide useful information as it removes the chances of one off
+trees that occur due to a miniscule change.
+@param alignment - a clustal file that has all our sequences aligned.
+@param times - number of trees we want to generate for the consensus.
+@param model_type - type of distance model we want neighbour joining or UPGMA.
+passed as a string "nj" or "upgma".
+@return Tree object representing the bootstrap consensus tree. 
+'''
+def buildBootstrapConsensusTree(alignment, times, model_type):
+    distance_calculator = DistanceCalculator(model='identity')
+    #default is neighbour joining "nj"
+    constructor = DistanceTreeConstructor(distance_calculator, model_type)
+    tree = bootstrap_consensus(alignment, times, constructor, majority_consensus)
+    tree.ladderize()
+    return tree
+
+'''
 drawTree - a function that draws a pictoral representation of a phylogenetic tree 
     using matplotlib and Biopython, then saves the image as a png file.
 @param tree - Tree object to draw
@@ -119,7 +166,7 @@ def drawTree(tree, fileName):
     fig = plt.figure(figsize=(20,10), dpi=100)
     axes = fig.add_subplot(1,1,1)
     plt.tight_layout()
-    phyloDraw(tree, axes=axes, branch_labels=lambda c: round(c.branch_length, 3), do_show=False, show_confidence=True)
+    phyloDraw(tree, axes=axes, branch_labels=lambda c: round(c.branch_length, 3) if c.branch_length != None else 0, do_show=False, show_confidence=True)
     plt.savefig(fileName)
 
 '''
@@ -160,13 +207,14 @@ def unlabelInternals(tree):
     for clade in internals:
         clade.name = ""
 
-# ------------------------------------------------------------------------------------------------------
 
 def main():
 
+
+    # ------------------------------------------------------------------------------------------------------
     # Record starting time
     startTime = time.time()
-    
+
     # Key File Names
     unalignedFileName = "sequences_aa.fa"
     alignedFileName = "sequences_aa.aln"
@@ -272,7 +320,7 @@ def main():
     # ---------------
 
     # Step 4.3: Build Parsimony Trees using Nearest Neighbor Interchange
-    
+
     # Step 4.3.1: With the Fitch Algorithm (no scoring matrix)
 
     # Step 4.3.1.1: Use UPGMA - Identity as a starting tree
@@ -310,7 +358,38 @@ def main():
     # ---------------
 
     # Step 4.4: Build Bootstrap Consensus Tree
-    
+
+
+    #all trees until now are stored into previousTrees
+
+    # Step 4.4.1 Build consensus tree using previously built trees and 
+    # strict consensus
+    previousTrees = allTrees
+    print("Building Strict consensus tree ...")
+    strictConsensusTree = buildStrictConsensusTree(previousTrees)
+    allTrees.append(strictConsensusTree)
+    drawTree(strictConsensusTree, "strictConsensusTree.png")
+
+    # Step 4.4.2 Build consensus tree using previously built trees and 
+    # majority consensus with a cutoff of 0
+    print("Building Majority consensus tree ...")
+    majorityConsensusTree = buildMajorityConsensusTree(previousTrees, 0)
+    allTrees.append(majorityConsensusTree)
+    drawTree(majorityConsensusTree, "majorityConsensusTree.png")
+
+    # Step 4.4.3 Build bootstrap consensus tree using newly built identity-upgma trees
+    print("Building Bootstrap consensus tree with 100 trees and upgma...")
+    bootstrapConsensusTreeUPGMA = buildBootstrapConsensusTree(alignment, 100, "upgma")
+    allTrees.append(bootstrapConsensusTreeUPGMA)
+    drawTree(bootstrapConsensusTreeUPGMA, "bootstrapConsensusTree - UPGMA")
+
+    # Step 4.4.4 Build bootstrap consensus tree using newly built identity-nj trees
+    print("Building Bootstrap consensus tree with 100 trees and neighbour-joining...")
+    bootstrapConsensusTreeNJ = buildBootstrapConsensusTree(alignment, 100, "nj")
+    allTrees.append(bootstrapConsensusTreeNJ)
+    drawTree(bootstrapConsensusTreeNJ, "bootstrapConsensusTree - NJ")
+
+
     # ---------------
 
     print("Tree building complete.")
@@ -320,7 +399,7 @@ def main():
     # Step 4.999: Export Trees to File
     print("Writing trees to disk...")
 
-    phyloWrite(allTrees, exportedTreesFileName, "newick")
+    phyloWrite(allTrees, exportedTreesFileName, "phyloxml")
 
     print ("Trees exported.")
 
@@ -352,7 +431,7 @@ def main():
         outfile.write("Tree Name,Clade Name,Depth\n")
         for tree in maxCladeDepthByBranchLength:
             outfile.write("{},{},{}\n".format(tree[0], tree[1], tree[2]))
-    
+
     with open("numBranches-"+depthAnalysisFileName, 'w') as outfile:
         outfile.write("Tree Name,Clade Name,Depth\n")
         for tree in maxCladeDepthByNumBranches:
@@ -416,7 +495,7 @@ def main():
         outfile.write("Tree Name,Parsimony Score\n")
         for tree in parsimonyScores:
             outfile.write("{},{}\n".format(tree[0], tree[1]))
-    
+
     print("Analysis Complete.")
     # -------------------------------------
 
