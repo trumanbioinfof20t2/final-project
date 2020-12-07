@@ -1,12 +1,16 @@
 '''
 Bioinformatics Team 2 Final Project
 Miller, Ingli, Shahi, Winistoerfer
-Last Modified: 12/2/20
+Last Modified: 12/7/20
 1. Check validity of amino acid sequences
 2. Align sequences with clustal
 3. Calculate a distance matrix
 4. Create a series of phylogenetic trees
 5. Analyze some characteristics of the trees
+
+USAGE: python3 team2-final-project.py [-h] [-n]
+    -h  Show this help text and exit.
+    -n  Do not perform clustal alignment. Instead, use the existing sequences_aa.aln file
 '''
 
 from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor, ParsimonyScorer, NNITreeSearcher, ParsimonyTreeConstructor
@@ -20,6 +24,7 @@ import matplotlib.pyplot as plt
 import sys
 import time
 import operator
+from math import inf
 
 from readfasta import readfasta
 
@@ -113,7 +118,7 @@ def buildParsimonyNNITree(alignment, startingTree, scoreMatrix=None):
 
 '''
 buildStrictConsensusTree - a function that uses Biopython's Consensus module to
-build a consensus tree using a list of trees given as argument.
+build a strict consensus tree using a list of trees given as argument.
 @param trees - a list of trees.
 @return Tree object representing the strict consensus tree.
 '''
@@ -124,34 +129,29 @@ def buildStrictConsensusTree(trees):
 
 '''
 buildMajorityConsensusTree - a function that uses Biopython's Consensus module to
-build a consensus tree using a list of trees given as argument. Uses majority
-consensus to build trees.
+build a majority consensus tree using a list of trees given as argument.
 @param trees - a list of trees.
-@param cutoff - an float value from 0-1 that is the cutoff percentage.
+@param cutoff - (optional) a float value from 0~1 that is the cutoff percentage. Default: 0
 @return Tree object representing the majority consensus tree.
 '''
-def buildMajorityConsensusTree(trees, cutoff):
-    #by default cutoff is 0
+def buildMajorityConsensusTree(trees, cutoff = 0):
     tree = majority_consensus(trees, cutoff)
     tree.ladderize()
     return tree
 
 '''
 buildBootstrapConsensusTree - a function that uses Biopython's Consensus module to
-build a consensus by the bootstrap method i.e. generating several trees with some 
-permutation and then taking a consensus (in this case majority with cutoff 0 (default))
-that will then provide useful information as it removes the chances of one off
-trees that occur due to a miniscule change.
-@param alignment - a clustal file that has all our sequences aligned.
+build a consensus tree with bootstrapping on a distance-based tree building model and 
+majority consensus (cutoff zero).
+@param alignment - an Alignment object
 @param times - number of trees we want to generate for the consensus.
-@param model_type - type of distance model we want neighbour joining or UPGMA.
-passed as a string "nj" or "upgma".
+@param modelType - (optional) Tree building model to use: "upgma" or "nj". Default: "nj"
+@param distanceModel - (optional) Distance scoring matrix to use. Default: "identity"
 @return Tree object representing the bootstrap consensus tree. 
 '''
-def buildBootstrapConsensusTree(alignment, times, model_type):
-    distance_calculator = DistanceCalculator(model='identity')
-    #default is neighbour joining "nj"
-    constructor = DistanceTreeConstructor(distance_calculator, model_type)
+def buildBootstrapConsensusTree(alignment, times, modelType = "nj", distanceModel = "identity"):
+    distance_calculator = DistanceCalculator(model=distanceModel)
+    constructor = DistanceTreeConstructor(distance_calculator, modelType)
     tree = bootstrap_consensus(alignment, times, constructor, majority_consensus)
     tree.ladderize()
     return tree
@@ -187,13 +187,16 @@ def getMaxCladeDepth(tree, useNumBranches = False):
 
 '''
 getParsimonyScore - a function that generates the parsimony score of a 
-    given tree and multi-sequence alignment
-@param tree - Tree object to score
+    given bifurcating tree and multi-sequence alignment
+@param tree - Tree object to score; must be bifurcating
 @param msa - Alignment object to use in score
 @param scoreMatrix - Parsimony Scoring Matrix (in _Matrix object form) to use in the 
     Sankoff algorithm. Default: None (use the Fitch algorithm instead)
+@return Parsimony Score if tree is bifurcating, else infinity
 '''
 def getParsimonyScore(tree, msa, scoreMatrix = None):
+    if not tree.is_bifurcating():
+        return inf
     scorer = ParsimonyScorer(scoreMatrix)
     parsimonyScore = scorer.get_score(tree, msa)
     return parsimonyScore
@@ -210,6 +213,10 @@ def unlabelInternals(tree):
 
 def main():
 
+    # If the user requested help, provide it and exit
+    if "-h" in sys.argv or "--help" in sys.argv:
+        print(__doc__)
+        sys.exit(0)
 
     # ------------------------------------------------------------------------------------------------------
     # Record starting time
@@ -253,9 +260,12 @@ def main():
 
     # Step 2: Use Clustal to align the sequences
 
-    print("Aligning Sequences using Clustal...")
-    clustalAlign(unalignedFileName)
-
+    if "-n" in sys.argv: # If the user gave the command line argument to skip clustal alignment
+        print("Skipping Clustal Alignment; Loading existing alignment instead.")
+    else:
+        print("Aligning Sequences using Clustal...")
+        clustalAlign(unalignedFileName)
+        
     # Read clustal alignment
     print("Loading Clustal alignment from disk...")
     alignment = AlignIO.read(alignedFileName, "clustal")
@@ -367,6 +377,8 @@ def main():
     previousTrees = allTrees
     print("Building Strict consensus tree ...")
     strictConsensusTree = buildStrictConsensusTree(previousTrees)
+    unlabelInternals(strictConsensusTree)
+    strictConsensusTree.name = "Strict Consensus"
     allTrees.append(strictConsensusTree)
     drawTree(strictConsensusTree, "strictConsensusTree.png")
 
@@ -374,20 +386,26 @@ def main():
     # majority consensus with a cutoff of 0
     print("Building Majority consensus tree ...")
     majorityConsensusTree = buildMajorityConsensusTree(previousTrees, 0)
+    unlabelInternals(majorityConsensusTree)
+    majorityConsensusTree.name = "Majority Consensus"
     allTrees.append(majorityConsensusTree)
     drawTree(majorityConsensusTree, "majorityConsensusTree.png")
 
     # Step 4.4.3 Build bootstrap consensus tree using newly built identity-upgma trees
     print("Building Bootstrap consensus tree with 100 trees and upgma...")
     bootstrapConsensusTreeUPGMA = buildBootstrapConsensusTree(alignment, 100, "upgma")
+    unlabelInternals(bootstrapConsensusTreeUPGMA)
+    bootstrapConsensusTreeUPGMA.name = "Bootstrap Majority Consensus - UPGMA"
     allTrees.append(bootstrapConsensusTreeUPGMA)
-    drawTree(bootstrapConsensusTreeUPGMA, "bootstrapConsensusTree - UPGMA")
+    drawTree(bootstrapConsensusTreeUPGMA, "bootstrapConsensusTreeUPGMA.png")
 
     # Step 4.4.4 Build bootstrap consensus tree using newly built identity-nj trees
-    print("Building Bootstrap consensus tree with 100 trees and neighbour-joining...")
+    print("Building Bootstrap consensus tree with 100 trees and neighbor-joining...")
     bootstrapConsensusTreeNJ = buildBootstrapConsensusTree(alignment, 100, "nj")
+    unlabelInternals(bootstrapConsensusTreeNJ)
+    bootstrapConsensusTreeNJ.name = "Bootstrap Majority Consensus - NJ"
     allTrees.append(bootstrapConsensusTreeNJ)
-    drawTree(bootstrapConsensusTreeNJ, "bootstrapConsensusTree - NJ")
+    drawTree(bootstrapConsensusTreeNJ, "bootstrapConsensusTreeNJ.png")
 
 
     # ---------------
